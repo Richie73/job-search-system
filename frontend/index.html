@@ -1,1 +1,320 @@
 
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Job Search" />
+    <title>Job Search System</title>
+    <link rel="manifest" href="manifest.json" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #1a1a2e;
+        color: #eee;
+        min-height: 100vh;
+      }
+      header {
+        background: #16213e;
+        padding: 16px;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      }
+      header h1 { font-size: 1.3rem; color: #e94560; }
+      header p { font-size: 0.8rem; color: #aaa; margin-top: 4px; }
+      .tabs {
+        display: flex;
+        background: #16213e;
+        border-bottom: 1px solid #333;
+      }
+      .tab {
+        flex: 1;
+        padding: 12px;
+        text-align: center;
+        cursor: pointer;
+        font-size: 0.85rem;
+        color: #aaa;
+        border: none;
+        background: none;
+      }
+      .tab.active {
+        color: #e94560;
+        border-bottom: 2px solid #e94560;
+      }
+      .page { display: none; padding: 16px; }
+      .page.active { display: block; }
+      .job-card {
+        background: #16213e;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border-left: 4px solid #e94560;
+      }
+      .job-card h3 { font-size: 1rem; color: #fff; margin-bottom: 4px; }
+      .job-card .company { color: #e94560; font-size: 0.85rem; margin-bottom: 4px; }
+      .job-card .meta { color: #aaa; font-size: 0.8rem; margin-bottom: 8px; }
+      .job-card .source-badge {
+        display: inline-block;
+        background: #0f3460;
+        color: #fff;
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-bottom: 8px;
+      }
+      .btn {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.85rem;
+        margin-right: 8px;
+        margin-top: 8px;
+        text-decoration: none;
+      }
+      .btn-primary { background: #e94560; color: #fff; }
+      .btn-secondary { background: #0f3460; color: #fff; }
+      .btn-dismiss { background: #333; color: #aaa; }
+      .btn-success { background: #4caf50; color: #fff; }
+      textarea {
+        width: 100%;
+        background: #1a1a2e;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 12px;
+        color: #ddd;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        min-height: 200px;
+        margin-top: 12px;
+      }
+      .loading { text-align: center; padding: 40px; color: #aaa; }
+      .empty { text-align: center; padding: 40px; color: #aaa; }
+      .badge {
+        background: #e94560;
+        color: #fff;
+        border-radius: 10px;
+        padding: 2px 6px;
+        font-size: 0.7rem;
+        margin-left: 4px;
+      }
+      .applied-card { border-left-color: #4caf50; }
+      .status-sent { color: #4caf50; font-size: 0.8rem; margin-top: 6px; }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #4caf50;
+        color: #fff;
+        padding: 10px 24px;
+        border-radius: 24px;
+        font-size: 0.85rem;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+        z-index: 999;
+      }
+      .toast.show { opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🔨 Job Search</h1>
+      <p>Richard Gallagher - Construction Jobs</p>
+    </header>
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('jobs', this)">
+        New Jobs <span class="badge" id="jobs-count">0</span>
+      </button>
+      <button class="tab" onclick="showTab('applied', this)">Applied</button>
+      <button class="tab" onclick="showTab('settings', this)">Settings</button>
+    </div>
+    <div class="page active" id="page-jobs">
+      <div id="jobs-list">
+        <div class="loading">Loading jobs...</div>
+      </div>
+    </div>
+    <div class="page" id="page-applied">
+      <div id="applied-list">
+        <div class="loading">Loading...</div>
+      </div>
+    </div>
+    <div class="page" id="page-settings">
+      <div style="padding: 16px 0">
+        <h2 style="margin-bottom: 16px; color: #e94560">Settings</h2>
+        <div style="background: #16213e; border-radius: 12px; padding: 16px; margin-bottom: 12px">
+          <h3 style="margin-bottom: 8px">Search Status</h3>
+          <p style="color: #aaa; font-size: 0.85rem">Searching every 30 minutes</p>
+          <p style="color: #aaa; font-size: 0.85rem; margin-top: 4px">Boards: Reed, TotalJobs, CV Library</p>
+        </div>
+        <div style="background: #16213e; border-radius: 12px; padding: 16px; margin-bottom: 12px">
+          <h3 style="margin-bottom: 8px">Your Profile</h3>
+          <p style="color: #aaa; font-size: 0.85rem">Richard Gallagher</p>
+          <p style="color: #aaa; font-size: 0.85rem">SMSTS | NPORS | IOSH</p>
+        </div>
+        <div style="background: #16213e; border-radius: 12px; padding: 16px">
+          <h3 style="margin-bottom: 8px">Target Roles</h3>
+          <p style="color: #aaa; font-size: 0.85rem">• Assistant/Trainee Site Manager</p>
+          <p style="color: #aaa; font-size: 0.85rem">• 360 Excavator Operator</p>
+          <p style="color: #aaa; font-size: 0.85rem">• Dumper Driver</p>
+          <p style="color: #aaa; font-size: 0.85rem">• Road Roller Operator</p>
+          <p style="color: #aaa; font-size: 0.85rem">• Electricians Mate</p>
+          <p style="color: #aaa; font-size: 0.85rem; margin-top: 8px">📍 Wirral, Cheshire West, North Wales</p>
+          <p style="color: #aaa; font-size: 0.85rem">💰 £17-20/hr or £35-40k/year</p>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script>
+      const API = "https://job-search-system-mkmm.onrender.com";
+
+      function showToast(msg, color) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.style.background = color || "#4caf50";
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2500);
+      }
+
+      function showTab(tab, el) {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+        el.classList.add("active");
+        document.getElementById("page-" + tab).classList.add("active");
+        if (tab === "jobs") loadJobs();
+        if (tab === "applied") loadApplied();
+      }
+
+      async function loadJobs() {
+        const list = document.getElementById("jobs-list");
+        list.innerHTML = '<div class="loading">Loading jobs...</div>';
+        try {
+          const res = await fetch(`${API}/api/jobs`);
+          const jobs = await res.json();
+          const newJobs = jobs.filter(j => !j.is_applied);
+          document.getElementById("jobs-count").textContent = newJobs.length;
+          if (newJobs.length === 0) {
+            list.innerHTML = '<div class="empty">No new jobs found yet.<br>Check back soon!</div>';
+            return;
+          }
+          list.innerHTML = newJobs.map(job => `
+            <div class="job-card" id="job-${job.id}">
+              <span class="source-badge">${job.source || "Unknown"}</span>
+              <h3>${job.title || "Untitled"}</h3>
+              <div class="company">${job.company || "Company not listed"}</div>
+              <div class="meta">
+                📍 ${job.location || "Location not listed"} &nbsp;|&nbsp;
+                💰 ${job.salary_text || "Salary not listed"}
+              </div>
+              <div>
+                <button class="btn btn-primary" onclick="generateCoverLetter('${job.id}')">
+                  ✍️ Cover Letter
+                </button>
+                <a href="${job.url}" target="_blank" class="btn btn-secondary">
+                  🔗 View Job
+                </a>
+                <button class="btn btn-dismiss" onclick="dismissJob('${job.id}')">
+                  ✕ Dismiss
+                </button>
+              </div>
+              <div id="cover-${job.id}"></div>
+            </div>
+          `).join("");
+        } catch (e) {
+          list.innerHTML = '<div class="empty">Error loading jobs. Please try again.</div>';
+        }
+      }
+
+      async function generateCoverLetter(jobId) {
+        const coverDiv = document.getElementById(`cover-${jobId}`);
+        coverDiv.innerHTML = "<p style='color:#aaa;margin-top:12px'>✦ Generating cover letter...</p>";
+        try {
+          const res = await fetch(`${API}/api/jobs/${jobId}/cover-letter`, { method: "POST" });
+          const data = await res.json();
+          coverDiv.innerHTML = `
+            <textarea id="textarea-${jobId}">${data.cover_letter}</textarea>
+            <div>
+              <button class="btn btn-success" onclick="markApplied('${jobId}', '${data.application_id}')">
+                ✅ Mark as Applied
+              </button>
+            </div>
+          `;
+        } catch (e) {
+          coverDiv.innerHTML = "<p style='color:#e94560;margin-top:12px'>Error generating cover letter. Try again.</p>";
+        }
+      }
+
+      async function markApplied(jobId, appId) {
+        try {
+          const coverLetter = document.getElementById(`textarea-${jobId}`).value;
+          await fetch(`${API}/api/applications/${appId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cover_letter: coverLetter, status: "sent" }),
+          });
+          await fetch(`${API}/api/jobs/${jobId}/applied`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date_sent: new Date().toISOString(), notes: "" }),
+          });
+          document.getElementById(`job-${jobId}`).remove();
+          const count = document.getElementById("jobs-count");
+          count.textContent = Math.max(0, parseInt(count.textContent) - 1);
+          showToast("✅ Marked as applied!");
+        } catch (e) {
+          showToast("Error marking as applied", "#e94560");
+        }
+      }
+
+      async function dismissJob(jobId) {
+        try {
+          await fetch(`${API}/api/jobs/${jobId}/dismiss`, { method: "POST" });
+          document.getElementById(`job-${jobId}`).remove();
+          const count = document.getElementById("jobs-count");
+          count.textContent = Math.max(0, parseInt(count.textContent) - 1);
+          showToast("Job dismissed");
+        } catch (e) {
+          showToast("Error dismissing job", "#e94560");
+        }
+      }
+
+      async function loadApplied() {
+        const list = document.getElementById("applied-list");
+        list.innerHTML = '<div class="loading">Loading...</div>';
+        try {
+          const res = await fetch(`${API}/api/jobs`);
+          const jobs = await res.json();
+          const applied = jobs.filter(j => j.is_applied);
+          if (applied.length === 0) {
+            list.innerHTML = '<div class="empty">No applications yet.<br>Apply to some jobs!</div>';
+            return;
+          }
+          list.innerHTML = applied.map(job => `
+            <div class="job-card applied-card">
+              <span class="source-badge">${job.source || "Unknown"}</span>
+              <h3>${job.title || "Untitled"}</h3>
+              <div class="company">${job.company || "Company not listed"}</div>
+              <div class="meta">📍 ${job.location || "Location not listed"}</div>
+              <div class="status-sent">✓ Applied</div>
+              ${job.url ? `<a href="${job.url}" target="_blank" class="btn btn-secondary" style="margin-top:8px">🔗 View Job</a>` : ""}
+            </div>
+          `).join("");
+        } catch (e) {
+          list.innerHTML = '<div class="empty">Error loading applications.</div>';
+        }
+      }
+
+      loadJobs();
+    </script>
+  </body>
+</html>
