@@ -1,4 +1,5 @@
-import os
+import typing
+typing.Union.__module__ = "typingimport os
 import requests
 import feedparser
 import hashlib
