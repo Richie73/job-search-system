@@ -1,5 +1,6 @@
 import typing
-typing.Union.__module__ = "typingimport os
+typing.Union.__module__ = "typing"
+import os
 import requests
 import feedparser
 import hashlib
